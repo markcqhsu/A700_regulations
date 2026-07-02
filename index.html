@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>法規鑑定登錄表</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="toolbar no-print">
+    <div class="toolbar-row law-url-row">
+      <input id="lawUrlInput" type="url" class="law-url-input" placeholder="貼上法規網址，例如：https://laws.mol.gov.tw/FLAW/FLAWDAT0201.aspx?id=FL015029">
+      <button id="fetchLawBtn" class="btn btn-primary">讀取轉換</button>
+    </div>
+    <div class="toolbar-row toolbar-actions">
+      <div class="category-tabs" id="categoryTabs"></div>
+      <button id="addCategoryBtn" class="btn btn-ghost" title="新增法規類別">+ 新增類別</button>
+      <div class="spacer"></div>
+      <button id="addRowBtn" class="btn">＋ 新增列</button>
+      <button id="importExcelBtn" class="btn btn-outline">匯入 Excel</button>
+      <input id="importExcelFile" type="file" accept=".xlsx" style="display:none">
+      <button id="importJsonBtn" class="btn btn-outline">匯入備份</button>
+      <input id="importJsonFile" type="file" accept=".json" style="display:none">
+      <button id="exportJsonBtn" class="btn btn-outline">匯出備份</button>
+      <button id="exportExcelBtn" class="btn btn-primary">匯出 Excel</button>
+      <button id="exportPdfBtn" class="btn btn-primary">匯出 PDF</button>
+    </div>
+  </header>
+
+  <main class="sheet" id="sheet">
+
+    <div class="sheet-title">
+      <input id="companyNameInput" class="company-input" type="text" placeholder="公司名稱（例如：宏全國際股份有限公司）">
+      <h1 class="app-title">法規鑑定登錄表</h1>
+    </div>
+
+    <div class="sheet-meta no-print-border">
+      <div class="meta-row">
+        <label>類別：</label>
+        <input id="categoryNameInput" type="text" placeholder="請輸入法規類別，例如：內政部消防署法令">
+        <button id="renameCategoryDone" class="link-btn no-print">刪除此類別</button>
+      </div>
+      <div class="meta-row">
+        <label>日期：</label>
+        <input id="categoryDateInput" type="date" class="no-print">
+        <span id="categoryDatePrint" class="print-only"></span>
+      </div>
+    </div>
+
+    <table class="reg-table" id="regTable">
+      <thead>
+        <tr>
+          <th class="col-law">法令名稱</th>
+          <th class="col-article">條項</th>
+          <th class="col-req">法 規 要 求 及 標 準</th>
+          <th class="col-status">工廠目前執行現況</th>
+          <th class="col-comp">法規符合性<br>(符合:○、不符合:╳、參考:△、不適用:-)</th>
+          <th class="col-trend">未來趨勢之機會或風險說明</th>
+          <th class="col-op no-print">操作</th>
+        </tr>
+      </thead>
+      <tbody id="regTableBody">
+        <!-- rows injected by JS -->
+      </tbody>
+    </table>
+
+    <div class="empty-state" id="emptyState" hidden>
+      目前沒有任何法規類別，請按左上角「＋ 新增類別」開始建立空白範本。
+    </div>
+
+    <div class="sheet-footer">
+      <div class="footer-row">
+        <span>核准：<input id="approverInput" type="text" class="footer-input"></span>
+        <span>審查：<input id="reviewerInput" type="text" class="footer-input"></span>
+        <span>制訂：<input id="drafterInput" type="text" class="footer-input"></span>
+      </div>
+      <div class="footer-row">
+        表單編號：<input id="formNoInput" type="text" class="footer-input form-no-input">
+      </div>
+    </div>
+
+  </main>
+
+  <div class="save-indicator no-print" id="saveIndicator">已自動儲存</div>
+  <div class="toast-stack no-print" id="toastStack"></div>
+
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
