@@ -112,8 +112,8 @@
   function cacheEls() {
     [
       "companyNameInput", "categoryTabs", "addCategoryBtn",
-      "exportExcelBtn", "exportPdfBtn",
-      "lawUrlInput", "fetchLawBtn",
+      "exportExcelBtn", "exportPdfBtn", "clearAllBtn",
+      "lawUrlInput", "fetchLawBtn", "helpBtn", "helpModalBackdrop", "helpModalClose",
       "categoryNameInput", "renameCategoryDone", "categoryDateInput", "categoryDatePrint",
       "regTableBody", "emptyState", "sheet",
       "approverInput", "reviewerInput", "drafterInput", "formNoInput"
@@ -308,6 +308,24 @@
     els.fetchLawBtn.addEventListener("click", fetchLawFromUrl);
     els.lawUrlInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") fetchLawFromUrl();
+    });
+
+    els.clearAllBtn.addEventListener("click", function () {
+      if (!confirm("確定要清空目前畫面上的所有資料嗎？此動作無法復原。")) return;
+      state = defaultState();
+      state.activeCategoryId = state.categories[0].id;
+      scheduleSave();
+      render();
+      showToast("已清空，可提供給下一位同仁使用。", "success");
+    });
+
+    els.helpBtn.addEventListener("click", function () { els.helpModalBackdrop.hidden = false; });
+    els.helpModalClose.addEventListener("click", function () { els.helpModalBackdrop.hidden = true; });
+    els.helpModalBackdrop.addEventListener("click", function (e) {
+      if (e.target === els.helpModalBackdrop) els.helpModalBackdrop.hidden = true;
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !els.helpModalBackdrop.hidden) els.helpModalBackdrop.hidden = true;
     });
   }
 
@@ -541,7 +559,7 @@
 
   var LAW_CATEGORY_RULES = [
     {
-      category: "職業安全衛生法規",
+      category: "職業安全衛生目",
       laws: [
         "職業安全衛生法", "職業災害勞工保護法", "地方主管機關受理最高負責人職場霸凌事件申訴處理辦法",
         "職場霸凌防治措施準則", "職業災害勞工申請器具照護失能及死亡補助辦法", "危險性機械及設備安全檢查規則",

@@ -11,17 +11,19 @@
 
 <div class="app">
 
-  <div class="site-banner no-print">宏全職安衛法規整理網站 <span class="version-tag">v1.0</span></div>
+  <div class="site-banner no-print">宏全職安衛法規整理網站 <span class="version-tag">v1.1</span></div>
 
   <header class="toolbar no-print">
     <div class="toolbar-row law-url-row">
-      <input id="lawUrlInput" type="url" class="law-url-input" placeholder="貼上法規網址，例如：https://laws.mol.gov.tw/FLAW/FLAWDAT0201.aspx?id=FL015029">
+      <input id="lawUrlInput" type="url" class="law-url-input" placeholder="貼上法規網址，例如：https://laws.mol.gov.tw/FLAW/FLAWDAT0202.aspx?id=FL106213">
       <button id="fetchLawBtn" class="btn btn-primary">讀取轉換</button>
+      <button id="helpBtn" class="btn btn-outline" title="查看網址取得說明">? 說明</button>
     </div>
     <div class="toolbar-row toolbar-actions">
       <div class="category-tabs" id="categoryTabs"></div>
       <button id="addCategoryBtn" class="btn btn-ghost" title="新增法規類別">+ 新增類別</button>
       <div class="spacer"></div>
+      <button id="clearAllBtn" class="btn btn-danger" title="清空所有已讀取的資料">清空</button>
       <button id="exportExcelBtn" class="btn btn-primary">匯出 Excel</button>
       <button id="exportPdfBtn" class="btn btn-primary">匯出 PDF</button>
     </div>
@@ -83,6 +85,24 @@
 
   <div class="save-indicator no-print" id="saveIndicator">已自動儲存</div>
   <div class="toast-stack no-print" id="toastStack"></div>
+
+  <div class="modal-backdrop no-print" id="helpModalBackdrop" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2>如何取得法規網址</h2>
+        <button id="helpModalClose" class="modal-close" title="關閉">✕</button>
+      </div>
+      <div class="modal-body">
+        <ol class="help-steps">
+          <li>到「全國勞動法令查詢系統」（laws.mol.gov.tw）搜尋想要的法規，進入該法規的查詢頁面。</li>
+          <li>點選頁面下方的「所有條文」按鈕（如下圖）。</li>
+          <li>複製瀏覽器網址列的網址，格式類似：<code>https://laws.mol.gov.tw/FLAW/FLAWDAT0202.aspx?id=FL106213</code></li>
+          <li>將網址貼到本網站上方的網址欄位，按下「讀取轉換」即可。</li>
+        </ol>
+        <img src="img/help-step2-all-articles.png" alt="法規查詢頁面，點選「所有條文」按鈕" class="help-image">
+      </div>
+    </div>
+  </div>
 
 </div>
 
