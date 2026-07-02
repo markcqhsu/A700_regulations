@@ -50,7 +50,7 @@
   function defaultState() {
     return {
       companyName: "",
-      categories: [blankCategory()],
+      categories: [],
       activeCategoryId: null
     };
   }
@@ -313,7 +313,6 @@
     els.clearAllBtn.addEventListener("click", function () {
       if (!confirm("確定要清空目前畫面上的所有資料嗎？此動作無法復原。")) return;
       state = defaultState();
-      state.activeCategoryId = state.categories[0].id;
       scheduleSave();
       render();
       showToast("已清空，可提供給下一位同仁使用。", "success");

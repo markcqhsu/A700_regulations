@@ -211,6 +211,7 @@ body {
   gap: 8px;
   margin-bottom: 14px;
 }
+.sheet-meta[hidden] { display: none; }
 
 .meta-row {
   display: flex;
