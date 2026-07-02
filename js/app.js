@@ -49,7 +49,7 @@
 
   function defaultState() {
     return {
-      companyName: "",
+      companyName: "宏全國際股份有限公司",
       categories: [],
       activeCategoryId: null
     };
@@ -372,12 +372,22 @@
     bottom: { style: "thin" }, right: { style: "thin" }
   };
 
+  function isItemBlank(item) {
+    return !item.lawName && !item.article && !item.requirement &&
+      !item.currentStatus && !item.compliance && !item.futureTrend;
+  }
+
+  function isCategoryBlank(cat) {
+    return !cat.name.trim() && cat.items.every(isItemBlank);
+  }
+
   function exportExcel() {
     if (typeof ExcelJS === "undefined") {
       showToast("匯出元件尚未載入完成，請稍候再試一次。", "error");
       return;
     }
-    if (!state.categories.length) {
+    var categoriesToExport = state.categories.filter(function (c) { return !isCategoryBlank(c); });
+    if (!categoriesToExport.length) {
       showToast("目前沒有任何類別可以匯出。", "error");
       return;
     }
@@ -387,7 +397,7 @@
     workbook.created = new Date();
 
     var usedNames = {};
-    state.categories.forEach(function (cat) {
+    categoriesToExport.forEach(function (cat) {
       var baseName = safeSheetName(cat.name);
       var name = baseName, n = 2;
       while (usedNames[name]) { name = safeSheetName(baseName.slice(0, 28) + "_" + n); n++; }
