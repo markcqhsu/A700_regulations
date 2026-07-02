@@ -111,9 +111,8 @@
   var els = {};
   function cacheEls() {
     [
-      "companyNameInput", "categoryTabs", "addCategoryBtn", "addRowBtn",
-      "importExcelBtn", "importExcelFile", "importJsonBtn", "importJsonFile",
-      "exportJsonBtn", "exportExcelBtn", "exportPdfBtn",
+      "companyNameInput", "categoryTabs", "addCategoryBtn",
+      "exportExcelBtn", "exportPdfBtn",
       "lawUrlInput", "fetchLawBtn",
       "categoryNameInput", "renameCategoryDone", "categoryDateInput", "categoryDatePrint",
       "regTableBody", "emptyState", "sheet",
@@ -303,31 +302,6 @@
       });
     });
 
-    els.addRowBtn.addEventListener("click", function () {
-      var cat = getActiveCategory();
-      if (!cat) {
-        showToast("請先新增一個法規類別。", "error");
-        return;
-      }
-      var item = blankItem();
-      cat.items.push(item);
-      els.regTableBody.appendChild(buildRow(item));
-      scheduleSave();
-    });
-
-    els.exportJsonBtn.addEventListener("click", exportJSONBackup);
-    els.importJsonBtn.addEventListener("click", function () { els.importJsonFile.click(); });
-    els.importJsonFile.addEventListener("change", function (e) {
-      if (e.target.files[0]) importJSONBackup(e.target.files[0]);
-      e.target.value = "";
-    });
-
-    els.importExcelBtn.addEventListener("click", function () { els.importExcelFile.click(); });
-    els.importExcelFile.addEventListener("change", function (e) {
-      if (e.target.files[0]) importExcel(e.target.files[0]);
-      e.target.value = "";
-    });
-
     els.exportExcelBtn.addEventListener("click", exportExcel);
     els.exportPdfBtn.addEventListener("click", function () { window.print(); });
 
@@ -335,32 +309,6 @@
     els.lawUrlInput.addEventListener("keydown", function (e) {
       if (e.key === "Enter") fetchLawFromUrl();
     });
-  }
-
-  // ---------- JSON backup ----------
-  function exportJSONBackup() {
-    var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-    downloadBlob(blob, "法規鑑定登錄表_備份_" + todayISO() + ".json");
-  }
-
-  function importJSONBackup(file) {
-    var reader = new FileReader();
-    reader.onload = function () {
-      try {
-        var parsed = JSON.parse(reader.result);
-        if (!parsed || !Array.isArray(parsed.categories)) throw new Error("格式錯誤");
-        if (!confirm("匯入備份將會取代目前畫面上的所有資料，確定要繼續嗎？")) return;
-        state = parsed;
-        if (!state.activeCategoryId && state.categories.length) {
-          state.activeCategoryId = state.categories[0].id;
-        }
-        scheduleSave();
-        render();
-      } catch (err) {
-        showToast("匯入失敗，檔案格式不正確：" + err.message, "error");
-      }
-    };
-    reader.readAsText(file, "utf-8");
   }
 
   function downloadBlob(blob, filename) {
@@ -513,123 +461,6 @@
       console.error(err);
       showToast("匯出 Excel 失敗：" + err.message, "error");
     });
-  }
-
-  // ---------- Excel import ----------
-  function importExcel(file) {
-    if (typeof ExcelJS === "undefined") {
-      showToast("匯入元件尚未載入完成，請稍候再試一次。", "error");
-      return;
-    }
-    file.arrayBuffer().then(function (buf) {
-      var workbook = new ExcelJS.Workbook();
-      return workbook.xlsx.load(buf).then(function () { return workbook; });
-    }).then(function (workbook) {
-      var importedCount = 0;
-      workbook.eachSheet(function (ws) {
-        var cat = parseSheetToCategory(ws);
-        if (cat) {
-          state.categories.push(cat);
-          importedCount++;
-        }
-      });
-      if (importedCount === 0) {
-        showToast("找不到可辨識的資料，請確認 Excel 欄位是否符合本系統的表格格式。", "error");
-        return;
-      }
-      state.activeCategoryId = state.categories[state.categories.length - importedCount].id;
-      scheduleSave();
-      render();
-      showToast("已匯入 " + importedCount + " 個類別。", "success");
-    }).catch(function (err) {
-      console.error(err);
-      showToast("匯入 Excel 失敗：" + err.message, "error");
-    });
-  }
-
-  function cellText(ws, row, col) {
-    var v = ws.getCell(row, col).value;
-    if (v == null) return "";
-    if (typeof v === "object" && v.richText) {
-      return v.richText.map(function (rt) { return rt.text; }).join("");
-    }
-    return String(v);
-  }
-
-  function parseSheetToCategory(ws) {
-    var headerRow = null;
-    for (var r = 1; r <= Math.min(10, ws.rowCount); r++) {
-      if (cellText(ws, r, 1).indexOf("法令名稱") !== -1) { headerRow = r; break; }
-    }
-    if (!headerRow) return null;
-
-    var titleText = cellText(ws, 1, 1);
-    var companyName = titleText.split("\n")[0] || "";
-    if (companyName && !state.companyName) state.companyName = companyName;
-
-    var catLine = "";
-    for (var rr = 1; rr < headerRow; rr++) {
-      var t = cellText(ws, rr, 1);
-      if (t.indexOf("類別") !== -1) { catLine = t; break; }
-    }
-    var catName = catLine.replace(/^.*類別[：:]/, "").trim();
-    if (!catName) catName = ws.name;
-
-    var dateLine = "";
-    for (var rd = 1; rd < headerRow; rd++) {
-      for (var cd = 1; cd <= ws.columnCount; cd++) {
-        var t2 = cellText(ws, rd, cd);
-        if (t2.indexOf("日期") !== -1) { dateLine = t2; break; }
-      }
-      if (dateLine) break;
-    }
-    var dateStr = dateLine.replace(/^.*日期[：:]/, "").trim().replace(/\//g, "-");
-    var dateMatch = dateStr.match(/^\d{4}-\d{1,2}-\d{1,2}/);
-    var isoDate = dateMatch ? normalizeDate(dateMatch[0]) : todayISO();
-
-    var items = [];
-    for (var r2 = headerRow + 1; r2 <= ws.rowCount; r2++) {
-      var lawName = cellText(ws, r2, 1).trim();
-      var article = cellText(ws, r2, 2).trim();
-      var requirement = cellText(ws, r2, 3).trim();
-      var currentStatus = cellText(ws, r2, 4).trim();
-      var compliance = cellText(ws, r2, 5).trim();
-      var futureTrend = cellText(ws, r2, 6).trim();
-
-      if (!lawName && !article && !requirement && !currentStatus && !compliance && !futureTrend) continue;
-      if (lawName.indexOf("核准") !== -1 || lawName.indexOf("表單編號") !== -1) break;
-
-      items.push({
-        id: uid(), lawName: lawName, article: article, requirement: requirement,
-        currentStatus: currentStatus, compliance: compliance, futureTrend: futureTrend
-      });
-    }
-
-    var approver = "", reviewer = "", drafter = "", formNo = "";
-    for (var r3 = 1; r3 <= ws.rowCount; r3++) {
-      var line = cellText(ws, r3, 1);
-      if (line.indexOf("核准") !== -1) {
-        var am = line.match(/核准[：:]\s*([^\s審]+)/); if (am) approver = am[1];
-        var rm = line.match(/審查[：:]\s*([^\s制]+)/); if (rm) reviewer = rm[1];
-        var dm = line.match(/制訂[：:]\s*([^\s]+)/); if (dm) drafter = dm[1];
-      }
-      if (line.indexOf("表單編號") !== -1) {
-        formNo = line.replace(/^.*表單編號[：:]/, "").trim();
-      }
-    }
-
-    return {
-      id: uid(), name: catName, date: isoDate,
-      approver: approver, reviewer: reviewer, drafter: drafter, formNo: formNo,
-      items: items.length ? items : [blankItem()]
-    };
-  }
-
-  function normalizeDate(s) {
-    var parts = s.split("-");
-    if (parts.length !== 3) return todayISO();
-    var y = parts[0], m = String(parts[1]).padStart(2, "0"), d = String(parts[2]).padStart(2, "0");
-    return y + "-" + m + "-" + d;
   }
 
   // ---------- law URL import ----------

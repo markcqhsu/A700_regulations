@@ -11,6 +11,8 @@
 
 <div class="app">
 
+  <div class="site-banner no-print">宏全職安衛法規整理網站 <span class="version-tag">v1.0</span></div>
+
   <header class="toolbar no-print">
     <div class="toolbar-row law-url-row">
       <input id="lawUrlInput" type="url" class="law-url-input" placeholder="貼上法規網址，例如：https://laws.mol.gov.tw/FLAW/FLAWDAT0201.aspx?id=FL015029">
@@ -20,12 +22,6 @@
       <div class="category-tabs" id="categoryTabs"></div>
       <button id="addCategoryBtn" class="btn btn-ghost" title="新增法規類別">+ 新增類別</button>
       <div class="spacer"></div>
-      <button id="addRowBtn" class="btn">＋ 新增列</button>
-      <button id="importExcelBtn" class="btn btn-outline">匯入 Excel</button>
-      <input id="importExcelFile" type="file" accept=".xlsx" style="display:none">
-      <button id="importJsonBtn" class="btn btn-outline">匯入備份</button>
-      <input id="importJsonFile" type="file" accept=".json" style="display:none">
-      <button id="exportJsonBtn" class="btn btn-outline">匯出備份</button>
       <button id="exportExcelBtn" class="btn btn-primary">匯出 Excel</button>
       <button id="exportPdfBtn" class="btn btn-primary">匯出 PDF</button>
     </div>

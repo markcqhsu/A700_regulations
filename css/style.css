@@ -25,6 +25,25 @@ body {
   padding: 16px;
 }
 
+/* ---------- site banner ---------- */
+.site-banner {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.version-tag {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.85;
+  vertical-align: middle;
+}
+
 /* ---------- toolbar ---------- */
 .toolbar {
   background: var(--panel);
@@ -150,10 +169,6 @@ body {
   border-color: var(--accent);
 }
 .btn-primary:hover { background: var(--accent-hover); }
-
-.btn-outline {
-  background: #fff;
-}
 
 .btn-ghost {
   background: transparent;
