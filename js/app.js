@@ -577,23 +577,54 @@
     return lawName;
   }
 
+  function extractLawName(doc) {
+    var selectors = [
+      ".law-header-simple .col-td a",
+      "[id$='lawheader_hlkLNNAME']",
+      "#hlLawName",
+      ".table-title a"
+    ];
+    for (var i = 0; i < selectors.length; i++) {
+      var el = doc.querySelector(selectors[i]);
+      if (el && el.textContent.trim()) return el.textContent.trim();
+    }
+    return "";
+  }
+
+  function extractArticleText(row) {
+    var pre = row.querySelector(".col-data pre");
+    if (pre) return cleanArticleText(pre.textContent);
+
+    var lawArticle = row.querySelector(".col-data .law-article");
+    if (lawArticle) {
+      var lines = [];
+      Array.prototype.forEach.call(lawArticle.children, function (child) {
+        var t = child.textContent.trim();
+        if (t) lines.push(t);
+      });
+      if (lines.length) return lines.join("\n");
+      return lawArticle.textContent.trim();
+    }
+
+    var dataEl = row.querySelector(".col-data");
+    return dataEl ? cleanArticleText(dataEl.textContent) : "";
+  }
+
   function parseLawHtmlToItems(html) {
     var doc = new DOMParser().parseFromString(html, "text/html");
-    var nameEl = doc.querySelector(".law-header-simple .col-td a") ||
-      doc.querySelector("[id$='lawheader_hlkLNNAME']");
-    var lawName = nameEl ? nameEl.textContent.trim() : "";
+    var lawName = extractLawName(doc);
 
-    var rows = doc.querySelectorAll(".law-content .row, #cph_content_divContent .row");
+    var rows = doc.querySelectorAll(".law-content .row");
     var items = [];
     rows.forEach(function (row) {
       var noEl = row.querySelector(".col-no a");
-      var dataEl = row.querySelector(".col-data pre") || row.querySelector(".col-data");
+      var dataEl = row.querySelector(".col-data");
       if (!noEl || !dataEl) return;
       items.push({
         id: uid(),
         lawName: lawName,
         article: formatArticleLabel(noEl.textContent),
-        requirement: cleanArticleText(dataEl.textContent),
+        requirement: extractArticleText(row),
         currentStatus: "",
         compliance: "",
         futureTrend: ""
