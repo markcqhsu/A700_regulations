@@ -724,6 +724,63 @@
     return items;
   }
 
+  var CHAPTER_HEADER_RE = /^第\s*[〇零一二三四五六七八九十百千萬0-9]+\s*[編章節]/;
+
+  function parseLawContentBrToItems(doc, lawName) {
+    var container = doc.querySelector(".law-reg-content.law-article") || doc.querySelector(".law-article");
+    if (!container) return [];
+    var paragraphs = container.querySelectorAll("p");
+    if (!paragraphs.length) return [];
+
+    var items = [];
+    var currentLabel = null;
+    var currentText = "";
+
+    function flush() {
+      if (currentLabel && currentText.trim()) {
+        items.push({
+          id: uid(),
+          lawName: lawName,
+          article: formatArticleLabel(currentLabel),
+          requirement: cleanArticleText(currentText),
+          currentStatus: "",
+          compliance: "",
+          futureTrend: ""
+        });
+      }
+      currentText = "";
+    }
+
+    paragraphs.forEach(function (p) {
+      var lines = [];
+      var buf = "";
+      Array.prototype.forEach.call(p.childNodes, function (node) {
+        if (node.nodeType === 1 && node.tagName === "BR") {
+          lines.push(buf);
+          buf = "";
+        } else {
+          buf += node.textContent;
+        }
+      });
+      if (buf) lines.push(buf);
+
+      lines.forEach(function (rawLine) {
+        var line = rawLine.replace(/ /g, " ").trim();
+        if (!line) return;
+        if (ARTICLE_HEADER_RE.test(line)) {
+          flush();
+          currentLabel = line;
+          return;
+        }
+        if (CHAPTER_HEADER_RE.test(line)) return;
+        if (currentLabel) currentText += line + "\n";
+      });
+    });
+    flush();
+
+    return items;
+  }
+
   function parseLawHtmlToItems(html) {
     var doc = new DOMParser().parseFromString(html, "text/html");
     var lawName = extractLawName(doc);
@@ -746,6 +803,7 @@
     });
 
     if (items.length === 0) items = parseLawArticlePreToItems(doc, lawName);
+    if (items.length === 0) items = parseLawContentBrToItems(doc, lawName);
 
     if (!lawName || items.length === 0) return null;
     return { lawName: lawName, items: items };
