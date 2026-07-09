@@ -540,7 +540,7 @@
           return resp.text();
         })
         .then(function (text) {
-          var recognized = text && (text.indexOf("col-data") !== -1 || text.indexOf("law-article") !== -1);
+          var recognized = text && (text.indexOf("col-data") !== -1 || text.indexOf("law-article") !== -1 || text.indexOf("detail_contentTableData") !== -1);
           if (!recognized) throw new Error("內容格式無法辨識");
           return text;
         })
@@ -839,6 +839,64 @@
     return items;
   }
 
+  // Some sites (e.g. wra.gov.tw) render article text client-side from a JSON blob
+  // embedded in a hidden input rather than markup, so the static HTML has no visible
+  // article DOM at all. Each entry has Data=null for a chapter/section heading (skip),
+  // or Data="12" / "12.1" (main.sub) for an article's own number.
+  function parseLawJsonDataToItems(doc) {
+    var nameInput = doc.querySelector("#ContentPlaceHolder1_detail_LawNameValue");
+    var dataInput = doc.querySelector("#ContentPlaceHolder1_detail_contentTableData");
+    if (!nameInput || !dataInput) return null;
+
+    var lawName = (nameInput.getAttribute("value") || "").trim();
+    if (!lawName) return null;
+
+    var entries;
+    try {
+      entries = JSON.parse(dataInput.getAttribute("value") || "[]");
+    } catch (e) {
+      return null;
+    }
+    if (!Array.isArray(entries)) return null;
+
+    // The JSON array's own order does not follow article reading order (it mixes in
+    // amendment/insertion order), unlike every DOM-based parser above which naturally
+    // preserves document order by scanning top-to-bottom. Sort explicitly by article
+    // number (main, then sub) so the resulting table reads in the expected order.
+    var articleEntries = entries.filter(function (entry) {
+      return entry.Data !== null && entry.Data !== undefined;
+    });
+    articleEntries.sort(function (a, b) {
+      var pa = String(a.Data).split(".").map(Number);
+      var pb = String(b.Data).split(".").map(Number);
+      if (pa[0] !== pb[0]) return pa[0] - pb[0];
+      return (pa[1] || 0) - (pb[1] || 0);
+    });
+
+    var items = [];
+    articleEntries.forEach(function (entry) {
+      var parts = String(entry.Data).split(".");
+      var label = "第" + chineseNumeral(parseInt(parts[0], 10)) + "條";
+      if (parts[1]) label += "之" + chineseNumeral(parseInt(parts[1], 10));
+
+      var tmp = doc.createElement("div");
+      tmp.innerHTML = String(entry.Content || "").replace(/<br\s*\/?>/gi, "\n");
+
+      items.push({
+        id: uid(),
+        lawName: lawName,
+        article: label,
+        requirement: cleanArticleText(tmp.textContent),
+        currentStatus: "",
+        compliance: "",
+        futureTrend: ""
+      });
+    });
+
+    if (!items.length) return null;
+    return { lawName: lawName, items: items };
+  }
+
   function parseLawHtmlToItems(html) {
     var doc = new DOMParser().parseFromString(html, "text/html");
     var lawName = extractLawName(doc);
@@ -863,6 +921,13 @@
     if (items.length === 0) items = parseLawArticlePreToItems(doc, lawName);
     if (items.length === 0) items = parseLawContentBrToItems(doc, lawName);
     if (items.length === 0) items = parseLawTableRowsToItems(doc, lawName);
+    if (items.length === 0) {
+      var jsonResult = parseLawJsonDataToItems(doc);
+      if (jsonResult) {
+        lawName = jsonResult.lawName;
+        items = jsonResult.items;
+      }
+    }
 
     if (!lawName || items.length === 0) return null;
     return { lawName: lawName, items: items };
