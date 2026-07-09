@@ -686,6 +686,27 @@
   }
 
   var ARTICLE_HEADER_RE = /^第\s*\d+\s*(?:[-之]\s*\d+)?\s*條/;
+  var CN_NUM_RUN = "[0-9〇零一二三四五六七八九十百千萬]+";
+  // Broader than ARTICLE_HEADER_RE: also matches headers already spelled out in Chinese
+  // numerals (e.g. "第一條"). Only safe where the match position is structurally
+  // guaranteed to be an article's own header (start of its dedicated table cell) —
+  // NOT for scanning arbitrary body lines, where a mid-sentence citation like
+  // "第四十二條至前條..." would be misread as a new article header.
+  var ARTICLE_HEADER_CELL_RE = new RegExp("^第\\s*" + CN_NUM_RUN + "\\s*(?:[-之]\\s*" + CN_NUM_RUN + ")?\\s*條");
+
+  function collectBrLines(root) {
+    var lines = [];
+    var buf = "";
+    function walk(node) {
+      if (node.nodeType === 3) { buf += node.textContent; return; }
+      if (node.nodeType !== 1) return;
+      if (node.tagName === "BR") { lines.push(buf); buf = ""; return; }
+      Array.prototype.forEach.call(node.childNodes, walk);
+    }
+    Array.prototype.forEach.call(root.childNodes, walk);
+    if (buf) lines.push(buf);
+    return lines;
+  }
 
   function parseLawArticlePreToItems(doc, lawName) {
     var pre = doc.querySelector(".law-article pre") || doc.querySelector("pre");
@@ -752,17 +773,7 @@
     }
 
     paragraphs.forEach(function (p) {
-      var lines = [];
-      var buf = "";
-      Array.prototype.forEach.call(p.childNodes, function (node) {
-        if (node.nodeType === 1 && node.tagName === "BR") {
-          lines.push(buf);
-          buf = "";
-        } else {
-          buf += node.textContent;
-        }
-      });
-      if (buf) lines.push(buf);
+      var lines = collectBrLines(p);
 
       lines.forEach(function (rawLine) {
         var line = rawLine.replace(/ /g, " ").trim();
@@ -777,6 +788,41 @@
       });
     });
     flush();
+
+    return items;
+  }
+
+  function parseLawTableRowsToItems(doc, lawName) {
+    var container = doc.querySelector(".law-reg-content.law-article") || doc.querySelector(".law-article");
+    if (!container) return [];
+    var cells = container.querySelectorAll("table .ClearCss");
+    if (!cells.length) return [];
+
+    var items = [];
+    cells.forEach(function (cell) {
+      var lines = collectBrLines(cell)
+        .map(function (l) { return l.replace(/ /g, " ").trim(); })
+        .filter(function (l) { return l.length > 0; });
+      if (!lines.length) return;
+
+      var m = lines[0].match(ARTICLE_HEADER_CELL_RE);
+      if (!m) return;
+
+      var label = m[0];
+      var restOfFirstLine = lines[0].slice(m[0].length).trim();
+      var textLines = restOfFirstLine ? [restOfFirstLine].concat(lines.slice(1)) : lines.slice(1);
+      var text = textLines.join("\n");
+
+      items.push({
+        id: uid(),
+        lawName: lawName,
+        article: formatArticleLabel(label),
+        requirement: cleanArticleText(text),
+        currentStatus: "",
+        compliance: "",
+        futureTrend: ""
+      });
+    });
 
     return items;
   }
@@ -804,6 +850,7 @@
 
     if (items.length === 0) items = parseLawArticlePreToItems(doc, lawName);
     if (items.length === 0) items = parseLawContentBrToItems(doc, lawName);
+    if (items.length === 0) items = parseLawTableRowsToItems(doc, lawName);
 
     if (!lawName || items.length === 0) return null;
     return { lawName: lawName, items: items };
