@@ -576,8 +576,11 @@
   }
 
   function formatArticleLabel(rawLabel) {
-    var m = String(rawLabel || "").match(/第\s*(\d+)\s*(?:[-之]\s*(\d+))?\s*條/);
-    if (!m) return String(rawLabel || "").replace(/\s+/g, "");
+    var raw = String(rawLabel || "");
+    // Compound article numbers appear both as "第71-1條" (modifier before 條) and as
+    // "第71條之1" / "第七十一條之一" (modifier after 條, the more common legal-text form).
+    var m = raw.match(/第\s*(\d+)\s*條\s*之\s*(\d+)/) || raw.match(/第\s*(\d+)\s*(?:[-之]\s*(\d+))?\s*條/);
+    if (!m) return raw.replace(/\s+/g, "");
     var label = "第" + chineseNumeral(parseInt(m[1], 10)) + "條";
     if (m[2]) label += "之" + chineseNumeral(parseInt(m[2], 10));
     return label;
@@ -685,14 +688,18 @@
     return dataEl ? cleanArticleText(dataEl.textContent) : "";
   }
 
-  var ARTICLE_HEADER_RE = /^第\s*\d+\s*(?:[-之]\s*\d+)?\s*條/;
   var CN_NUM_RUN = "[0-9〇零一二三四五六七八九十百千萬]+";
-  // Broader than ARTICLE_HEADER_RE: also matches headers already spelled out in Chinese
-  // numerals (e.g. "第一條"). Only safe where the match position is structurally
-  // guaranteed to be an article's own header (start of its dedicated table cell) —
-  // NOT for scanning arbitrary body lines, where a mid-sentence citation like
-  // "第四十二條至前條..." would be misread as a new article header.
-  var ARTICLE_HEADER_CELL_RE = new RegExp("^第\\s*" + CN_NUM_RUN + "\\s*(?:[-之]\\s*" + CN_NUM_RUN + ")?\\s*條");
+  // Compound article numbers appear both as "第71-1條" (modifier before 條) and as
+  // "第71條之1" / "第七十一條之一" (modifier after 條, the more common legal-text form).
+  var ARTICLE_HEADER_BODY = "第\\s*" + CN_NUM_RUN + "\\s*(?:[-之]\\s*" + CN_NUM_RUN + ")?\\s*條(?:\\s*之\\s*" + CN_NUM_RUN + ")?";
+  // Whole-line match (digits or Chinese numerals): safe for scanning arbitrary body
+  // lines/tokens, since a genuine header occupies the entire line/token by itself —
+  // a mid-sentence citation like "第四十二條至前條..." has trailing text and won't match.
+  var ARTICLE_HEADER_LINE_RE = new RegExp("^" + ARTICLE_HEADER_BODY + "$");
+  // Prefix match: only safe where the match position is structurally guaranteed to be
+  // an article's own header (start of its dedicated table cell), since the header may
+  // share that line with the article's own body text (e.g. "第一條　　內容...").
+  var ARTICLE_HEADER_CELL_RE = new RegExp("^" + ARTICLE_HEADER_BODY);
 
   function collectBrLines(root) {
     var lines = [];
@@ -735,7 +742,7 @@
       if (node.nodeType === 1 && node.tagName === "B") {
         var headerText = node.textContent.replace(/\s+/g, " ").trim();
         flush();
-        currentLabel = ARTICLE_HEADER_RE.test(headerText) ? headerText : null;
+        currentLabel = ARTICLE_HEADER_LINE_RE.test(headerText) ? headerText : null;
         return;
       }
       if (currentLabel) currentText += node.textContent;
@@ -750,8 +757,13 @@
   function parseLawContentBrToItems(doc, lawName) {
     var container = doc.querySelector(".law-reg-content.law-article") || doc.querySelector(".law-article");
     if (!container) return [];
-    var paragraphs = container.querySelectorAll("p");
-    if (!paragraphs.length) return [];
+    // Different sites wrap the flowing, <br>-separated article text differently: some in
+    // <p> tags (glrs.moi.gov.tw), some directly in a top-level .ClearCss div with no <p>
+    // (law.moea.gov.tw). Either way, collectBrLines recurses through nested elements, so
+    // picking whichever wrapper actually exists is enough.
+    var blocks = container.querySelectorAll("p");
+    if (!blocks.length) blocks = container.querySelectorAll(":scope > .ClearCss");
+    if (!blocks.length) return [];
 
     var items = [];
     var currentLabel = null;
@@ -772,13 +784,13 @@
       currentText = "";
     }
 
-    paragraphs.forEach(function (p) {
+    blocks.forEach(function (p) {
       var lines = collectBrLines(p);
 
       lines.forEach(function (rawLine) {
         var line = rawLine.replace(/ /g, " ").trim();
         if (!line) return;
-        if (ARTICLE_HEADER_RE.test(line)) {
+        if (ARTICLE_HEADER_LINE_RE.test(line)) {
           flush();
           currentLabel = line;
           return;
