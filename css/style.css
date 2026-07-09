@@ -367,6 +367,26 @@ body {
 .toast-success { background: #2f9e44; }
 .toast-error { background: #c92a2a; }
 
+.toast-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 420px;
+}
+.toast-action .toast-msg { flex: 1; }
+.toast-action-btn {
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.toast-action-btn:hover { background: rgba(255,255,255,0.24); }
+
 .print-only { display: none; }
 
 /* ---------- help modal ---------- */

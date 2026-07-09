@@ -97,6 +97,39 @@
     }, 3200);
   }
 
+  function showToastWithAction(message, actionLabel, onAction, type) {
+    var stack = document.getElementById("toastStack");
+    if (!stack) { console.log(message); return; }
+    var el = document.createElement("div");
+    el.className = "toast toast-" + (type || "info") + " toast-action";
+
+    var msgSpan = document.createElement("span");
+    msgSpan.className = "toast-msg";
+    msgSpan.textContent = message;
+    el.appendChild(msgSpan);
+
+    var dismissTimer;
+    function dismiss() {
+      clearTimeout(dismissTimer);
+      el.classList.remove("show");
+      setTimeout(function () { el.remove(); }, 300);
+    }
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toast-action-btn";
+    btn.textContent = actionLabel;
+    btn.addEventListener("click", function () {
+      dismiss();
+      onAction();
+    });
+    el.appendChild(btn);
+
+    stack.appendChild(el);
+    requestAnimationFrame(function () { el.classList.add("show"); });
+    dismissTimer = setTimeout(dismiss, 8000);
+  }
+
   function flashSaveIndicator() {
     var el = document.getElementById("saveIndicator");
     el.classList.add("show");
@@ -662,6 +695,12 @@
     return { lawName: lawName, items: items };
   }
 
+  function suggestFullTextUrl(url) {
+    var m = String(url).match(/^(https?:\/\/laws\.mol\.gov\.tw\/FLAW\/)FLAWDAT01\.aspx(\?.*)?$/i);
+    if (!m) return null;
+    return m[1] + "FLAWDAT0201.aspx" + (m[2] || "");
+  }
+
   function fetchLawFromUrl() {
     var url = els.lawUrlInput.value.trim();
     if (!url) {
@@ -670,6 +709,20 @@
     }
     if (!/^https?:\/\//i.test(url)) {
       showToast("請輸入完整的網址（需以 http:// 或 https:// 開頭）。", "error");
+      return;
+    }
+
+    var suggestedUrl = suggestFullTextUrl(url);
+    if (suggestedUrl) {
+      showToastWithAction(
+        "這是法規的「基本資料頁」，沒有條文內容，請改用「所有條文」頁。",
+        "自動修正",
+        function () {
+          els.lawUrlInput.value = suggestedUrl;
+          fetchLawFromUrl();
+        },
+        "info"
+      );
       return;
     }
 
