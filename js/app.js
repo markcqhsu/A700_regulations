@@ -540,7 +540,8 @@
           return resp.text();
         })
         .then(function (text) {
-          if (!text || text.indexOf("col-data") === -1) throw new Error("內容格式無法辨識");
+          var recognized = text && (text.indexOf("col-data") !== -1 || text.indexOf("law-article") !== -1);
+          if (!recognized) throw new Error("內容格式無法辨識");
           return text;
         })
         .catch(function () { return attempt(i + 1); });
@@ -637,6 +638,20 @@
     return lawName;
   }
 
+  function extractLawNameFromField(doc) {
+    var ths = doc.querySelectorAll("th");
+    for (var i = 0; i < ths.length; i++) {
+      if (ths[i].textContent.indexOf("法規名稱") === -1) continue;
+      var td = ths[i].nextElementSibling;
+      if (!td) continue;
+      for (var j = 0; j < td.childNodes.length; j++) {
+        var node = td.childNodes[j];
+        if (node.nodeType === 3 && node.textContent.trim()) return node.textContent.trim();
+      }
+    }
+    return "";
+  }
+
   function extractLawName(doc) {
     var selectors = [
       ".law-header-simple .col-td a",
@@ -648,7 +663,7 @@
       var el = doc.querySelector(selectors[i]);
       if (el && el.textContent.trim()) return el.textContent.trim();
     }
-    return "";
+    return extractLawNameFromField(doc);
   }
 
   function extractArticleText(row) {
@@ -668,6 +683,45 @@
 
     var dataEl = row.querySelector(".col-data");
     return dataEl ? cleanArticleText(dataEl.textContent) : "";
+  }
+
+  var ARTICLE_HEADER_RE = /^第\s*\d+\s*(?:[-之]\s*\d+)?\s*條/;
+
+  function parseLawArticlePreToItems(doc, lawName) {
+    var pre = doc.querySelector(".law-article pre") || doc.querySelector("pre");
+    if (!pre) return [];
+
+    var items = [];
+    var currentLabel = null;
+    var currentText = "";
+
+    function flush() {
+      if (currentLabel && currentText.trim()) {
+        items.push({
+          id: uid(),
+          lawName: lawName,
+          article: formatArticleLabel(currentLabel),
+          requirement: cleanArticleText(currentText),
+          currentStatus: "",
+          compliance: "",
+          futureTrend: ""
+        });
+      }
+      currentText = "";
+    }
+
+    Array.prototype.forEach.call(pre.childNodes, function (node) {
+      if (node.nodeType === 1 && node.tagName === "B") {
+        var headerText = node.textContent.replace(/\s+/g, " ").trim();
+        flush();
+        currentLabel = ARTICLE_HEADER_RE.test(headerText) ? headerText : null;
+        return;
+      }
+      if (currentLabel) currentText += node.textContent;
+    });
+    flush();
+
+    return items;
   }
 
   function parseLawHtmlToItems(html) {
@@ -690,6 +744,8 @@
         futureTrend: ""
       });
     });
+
+    if (items.length === 0) items = parseLawArticlePreToItems(doc, lawName);
 
     if (!lawName || items.length === 0) return null;
     return { lawName: lawName, items: items };

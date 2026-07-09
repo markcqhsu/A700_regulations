@@ -463,6 +463,20 @@ body {
   border-radius: 6px;
 }
 
+.changelog-title {
+  margin: 20px 0 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.changelog-list {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.8;
+  font-size: 13px;
+  color: var(--text);
+}
+
 /* ---------- print ---------- */
 @media print {
   .no-print { display: none !important; }
