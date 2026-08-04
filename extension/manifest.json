@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "HC Regulation",
+  "version": "1.0.0",
+  "description": "讓宏全職安衛法規整理網站可以直接讀取政府法規網站內容，繞過瀏覽器的跨網域限制。",
+  "host_permissions": [
+    "*://*.gov.tw/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://markcqhsu.github.io/A700_regulations/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

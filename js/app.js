@@ -549,6 +549,42 @@
     return attempt(0);
   }
 
+  // The "HC Regulation" Chrome extension (content.js) relays fetches through
+  // its background service worker, which is exempt from CORS for hosts
+  // declared in the extension's manifest — unlike the public CORS_PROXIES
+  // below, this actually reaches gov.tw sites that block datacenter IPs.
+  var EXTENSION_BRIDGE_TIMEOUT_MS = 8000;
+
+  function fetchViaExtension(url) {
+    return new Promise(function (resolve, reject) {
+      var requestId = "req_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+      var timer = setTimeout(function () {
+        window.removeEventListener("message", onMessage);
+        reject(new Error("擴充功能未安裝或未回應"));
+      }, EXTENSION_BRIDGE_TIMEOUT_MS);
+
+      function onMessage(event) {
+        if (event.source !== window) return;
+        var data = event.data;
+        if (!data || data.source !== "hc-regulation-extension" || data.type !== "fetch-law-response") return;
+        if (data.requestId !== requestId) return;
+        clearTimeout(timer);
+        window.removeEventListener("message", onMessage);
+        if (data.ok) resolve(data.text);
+        else reject(new Error(data.error || "擴充功能讀取失敗"));
+      }
+
+      window.addEventListener("message", onMessage);
+      window.postMessage({ source: "hc-regulation-app", type: "fetch-law-request", url: url, requestId: requestId }, "*");
+    });
+  }
+
+  function fetchLawHtml(url) {
+    return fetchViaExtension(url).catch(function () {
+      return fetchViaProxies(url);
+    });
+  }
+
   var CN_DIGITS = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
   var CN_UNITS = ["", "十", "百", "千"];
 
@@ -968,7 +1004,7 @@
     var originalLabel = els.fetchLawBtn.textContent;
     els.fetchLawBtn.textContent = "讀取中...";
 
-    fetchViaProxies(url).then(function (html) {
+    fetchLawHtml(url).then(function (html) {
       var parsed = parseLawHtmlToItems(html);
       if (!parsed) {
         showToast("無法從這個網址辨識出法規條文，請確認網址是否為法規「所有條文」頁面。", "error");
