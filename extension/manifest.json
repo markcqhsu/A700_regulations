@@ -3,6 +3,20 @@
   "name": "HC Regulation",
   "version": "1.0.0",
   "description": "讓宏全職安衛法規整理網站可以直接讀取政府法規網站內容，繞過瀏覽器的跨網域限制。",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
   "host_permissions": [
     "*://*.gov.tw/*"
   ],
