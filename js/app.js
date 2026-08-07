@@ -774,15 +774,21 @@
       currentText = "";
     }
 
-    Array.prototype.forEach.call(pre.childNodes, function (node) {
-      if (node.nodeType === 1 && node.tagName === "B") {
+    // Article headers (<b>) usually sit directly under <pre>, but some sites
+    // (e.g. oaout.moenv.gov.tw) wrap the whole body in nested <span> tags, so
+    // recurse instead of only looking at pre's direct children.
+    function walk(node) {
+      if (node.nodeType === 3) { if (currentLabel) currentText += node.textContent; return; }
+      if (node.nodeType !== 1) return;
+      if (node.tagName === "B") {
         var headerText = node.textContent.replace(/\s+/g, " ").trim();
         flush();
         currentLabel = ARTICLE_HEADER_LINE_RE.test(headerText) ? headerText : null;
         return;
       }
-      if (currentLabel) currentText += node.textContent;
-    });
+      Array.prototype.forEach.call(node.childNodes, walk);
+    }
+    Array.prototype.forEach.call(pre.childNodes, walk);
     flush();
 
     return items;
