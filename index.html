@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>法規鑑定登錄表</title>
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="img/favicon/favicon-16.png">
+<link rel="apple-touch-icon" href="img/favicon/apple-touch-icon.png">
 <link rel="stylesheet" href="css/style.css">
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
@@ -11,7 +14,7 @@
 
 <div class="app">
 
-  <div class="site-banner no-print">宏全職安衛法規整理網站 <span class="version-tag">v1.12</span></div>
+  <div class="site-banner no-print">宏全職安衛法規整理網站 <span class="version-tag">v1.13</span></div>
 
   <header class="toolbar no-print">
     <div class="toolbar-row law-url-row">
@@ -103,6 +106,7 @@
 
         <h3 class="changelog-title">改版紀錄</h3>
         <ul class="changelog-list">
+          <li><strong>v1.13</strong>：更新網站 Favicon 與「HC Regulation」瀏覽器擴充功能圖示，改用新版吉祥物視覺設計。</li>
           <li><strong>v1.12</strong>：修正「環境部主管法規共用系統」（oaout.moenv.gov.tw）部分條文以巢狀 &lt;span&gt; 包住條號的頁面（例如組織法類法規）讀取失敗的問題。</li>
           <li><strong>v1.11</strong>：新增「HC Regulation」瀏覽器擴充功能作為讀取轉換的主要管道；原本使用的公開 CORS 代理服務陸續失效（收費化或服務不穩定），改用擴充功能直接繞過瀏覽器跨網域限制讀取政府法規網站，公開代理服務僅保留作為備援。需另外安裝擴充功能才能使用讀取轉換功能。</li>
           <li><strong>v1.10</strong>：新增支援「內政部消防署主管法規查詢系統」（law.nfa.gov.tw）的法規網址讀取轉換。</li>
